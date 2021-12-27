@@ -1,0 +1,144 @@
+
+//from "ecc/babyjubjubParams" import BABYJUBJUB_PARAMS
+
+import "ecc/babyjubjubParams" as context
+from "ecc/babyjubjubParams" import BabyJubJubParams
+import "ecc/proofOfOwnership" as proofOfOwnership
+import "ecc/edwardsScalarMult" as multiply
+
+import "utils/pack/bool/unpack" as unpack
+import "utils/casts/u64_from_bits" as u64_from_bits
+import "hashes/keccak/256bit" as keccak256
+
+import "hashes/sha256/256bitPadded" as sha256
+import "utils/casts/u32_8_to_bool_256" as u32_8_to_bool_256
+
+import "utils/casts/bool_256_to_u32_8" as bool_256_to_u32_8
+
+
+import "utils/casts/field_to_u32" as field_to_u32
+
+
+
+
+
+
+def testOwnershipTrue(private field sk, public field[2] pk) -> bool:
+	BabyJubJubParams context = context()
+	field[2] G = [context.Gu, context.Gv]
+
+	bool out = proofOfOwnership(pk, sk, context)
+
+	assert(out)
+	return true
+
+
+    def bool_to_u64_arr<N, P>(bool[N] bits) -> u64[P]:
+	u64[P] res = [0; P]
+	for u32 i in 0..P do
+		res[i] = u64_from_bits(bits[64 * i..64 * (i + 1)])
+	endfor
+	return res
+	
+	
+	
+    
+def main(private field user_age,private field user_sk, private field[2] user_pk, private field[2] user_true_DID, private field[2] delta,   public field[2] user_fake_DID,public field[2] IDP_DID,public field[2] Sign_H)->field:
+
+assert(testOwnershipTrue(user_sk,user_pk))
+	
+bool[254] pk0_t=unpack::<254>(user_pk[0])
+bool[256] pk0=[false,false,...pk0_t]
+bool[254] pk1_t=unpack::<254>(user_pk[1])
+bool[256] pk1=[false,false,...pk1_t]
+
+
+
+u64[4] pk0_u64 = bool_to_u64_arr::<256,4>(pk0)
+u64[4] pk1_u64 = bool_to_u64_arr::<256,4>(pk1)
+
+u64[8] pk = [pk1_u64[0],pk1_u64[1],pk1_u64[2],pk1_u64[3],pk0_u64[0],pk0_u64[1],pk0_u64[2],pk0_u64[3]]
+
+u64[4] user_DID=keccak256::<8>(pk)
+
+
+bool[128] user_true_DID_t=unpack::<128>(user_true_DID[0])
+bool[128] user_true_DID_t1=unpack::<128>(user_true_DID[1])
+bool[256] user_true_DID_t2=[...user_true_DID_t,...user_true_DID_t1]
+u64[4] user_true_DID_u64 = bool_to_u64_arr::<256,4>(user_true_DID_t2)
+
+
+assert(user_true_DID_u64==user_DID)
+
+
+
+bool[128] delta_t=unpack::<128>(delta[0])
+bool[128] delta_t1=unpack::<128>(delta[1])
+bool[256] delta_t2=[...delta_t,...delta_t1]
+u64[4] delta_u64 = bool_to_u64_arr::<256,4>(delta_t2)
+
+
+u64[8] user_DID_delta=[user_true_DID_u64[0],user_true_DID_u64[1],user_true_DID_u64[2],user_true_DID_u64[3],delta_u64[0],delta_u64[1],delta_u64[2],delta_u64[3]]   // pk
+
+
+u64[4] user_DID_delta_1P=keccak256::<8>(user_DID_delta)   
+
+
+bool[128] user_fake_DID_t=unpack::<128>(user_fake_DID[0])
+bool[128] user_fake_DID_t1=unpack::<128>(user_fake_DID[1])
+bool[256] user_fake_DID_t2=[...user_fake_DID_t,...user_fake_DID_t1]
+u64[4] user_fake_DID_u64 = bool_to_u64_arr::<256,4>(user_fake_DID_t2)
+
+
+//u32[8] user_new_DID_u32 = bool_256_to_u32_8(user_new_DID_t2)
+
+
+assert(user_DID_delta_1P==user_fake_DID_u64)
+
+/**/
+
+bool[128] IDP_DID_t=unpack::<128>(IDP_DID[0])
+bool[128] IDP_DID_t1=unpack::<128>(IDP_DID[1])
+bool[256] IDP_DID_t2=[...IDP_DID_t,...IDP_DID_t1]
+u64[4] IDP_DID_u64 = bool_to_u64_arr::<256,4>(IDP_DID_t2)
+
+
+//u32[8] IDP_DID_u32 = bool_256_to_u32_8(IDP_DID_t2)
+
+
+//assert(IDP_DID_1P==IDP_DID_u64)
+
+
+
+bool[64] user_age_t=unpack::<64>(user_age)
+u64[1] user_age_u64 = bool_to_u64_arr::<64,1>(user_age_t)
+
+
+
+u64[9] Sign_H_temp_u64=[user_age_u64[0],user_true_DID_u64[0],user_true_DID_u64[1],user_true_DID_u64[2],user_true_DID_u64[3],IDP_DID_u64[0],IDP_DID_u64[1],IDP_DID_u64[2],IDP_DID_u64[3]]
+
+
+
+u64[4] Sign_H_temp=keccak256::<9>(Sign_H_temp_u64)
+
+
+
+bool[128] Sign_H_t=unpack::<128>(Sign_H[0])
+bool[128] Sign_H_t1=unpack::<128>(Sign_H[1])
+bool[256] Sign_H_t2=[...Sign_H_t,...Sign_H_t1]
+u64[4] Sign_H_u64 = bool_to_u64_arr::<256,4>(Sign_H_t2)
+
+
+assert(Sign_H_temp==Sign_H_u64)
+
+
+
+field valid_age_max=60
+field valid_age_min=18
+
+
+assert(user_age>valid_age_min && user_age<valid_age_max)
+
+
+
+	return 1
